@@ -1,5 +1,8 @@
 ## Extractive Question Answering System using BERT
 
+![Demo](demo.gif)
+
+
 ### Overview
 
 This project implements an **end to end Extractive Question Answering (QA) system** using a **pre trained BERT model** fine tuned on the **HotpotQA dataset**. The system takes a **natural language question** and a **context passage** as input and predicts the **most relevant answer span** directly from the given context. In addition to model training and evaluation, the project includes a **web based application** that allows users to interact with the fine tuned model through a simple user interface.
