@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BERT Question Answering</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4F46E5; 
+            --primary-hover: #4338ca;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --radius: 12px;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-main);
+        }
+
+        .container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 700px;
+            padding: 40px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background-color: #f9fafb;
+            resize: vertical;
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #fff;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+
+        textarea {
+            min-height: 120px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background-color: #a5b4fc;
+            cursor: not-allowed;
+        }
+
+        .result-container {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            display: none; 
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-container.active {
+            display: block;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: var(--text-main);
+        }
+
+        #answer {
+            background-color: #f0fdf4; 
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            padding: 15px;
+            border-radius: 8px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .loader {
+            display: none;
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h2>BERT QA System</h2>
+        <p class="subtitle">Enter your context and ask a question to get AI-powered answers.</p>
+    </header>
+
+    <div class="form-group">
+        <label for="context">Context Paragraph</label>
+        <textarea id="context" placeholder="Paste your text passage here..."></textarea>
+    </div>
+
+    <div class="form-group">
+        <label for="question">Your Question</label>
+        <input type="text" id="question" placeholder="What would you like to know about the text?">
+    </div>
+
+    <button id="submitBtn" onclick="getAnswer()">Get Answer</button>
+
+    <div id="loader" class="loader"></div>
+
+    <div id="resultContainer" class="result-container">
+        <h3>Answer:</h3>
+        <p id="answer"></p>
+    </div>
+</div>
+
+<script>
+async function getAnswer() {
+    const context = document.getElementById("context").value;
+    const question = document.getElementById("question").value;
+    
+    const submitBtn = document.getElementById("submitBtn");
+    const loader = document.getElementById("loader");
+    const resultContainer = document.getElementById("resultContainer");
+    const answerEl = document.getElementById("answer");
+
+    if (!context || !question) {
+        alert("Please provide both context and a question.");
+        return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerText = "Analyzing...";
+    loader.style.display = "block";
+    resultContainer.classList.remove("active");
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/predict", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                context: context,
+                question: question
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        answerEl.innerText = data.answer;
+        resultContainer.classList.add("active");
+
+    } catch (error) {
+        console.error("Error:", error);
+        answerEl.innerText = "Error fetching answer...";
+        answerEl.style.backgroundColor = "#fef2f2"; 
+        answerEl.style.borderColor = "#fecaca";
+        answerEl.style.color = "#991b1b";
+        resultContainer.classList.add("active");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Get Answer";
+        loader.style.display = "none";
+    }
+}
+</script>
+
+</body>
+</html>
